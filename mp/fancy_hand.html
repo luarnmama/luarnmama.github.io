@@ -3,218 +3,159 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sci-Fi Hand Tracking Holographic Dial</title>
+    <title>Sci-Fi Hand Tracking - Virtual Interface</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/addons/p5.sound.min.js"></script>
     <script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
 
     <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        background-color: #0a0f19;
-        overflow: hidden;
-        font-family: 'Courier New', Courier, monospace;
-      }
-
-      /* 回上頁按鈕 */
-      #back-btn {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        z-index: 2000;
-        padding: 10px 20px;
-        font-size: 0.9em;
-        background: rgba(0, 255, 255, 0.1);
-        border: 1px solid rgba(0, 255, 255, 0.3);
-        backdrop-filter: blur(10px);
-        border-radius: 5px;
-        color: #0ff;
-        text-decoration: none;
-        transition: all 0.3s;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-      }
-
-      #back-btn:hover {
-        background: rgba(0, 255, 255, 0.2);
-        box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-      }
-
-      /* 啟動介面 */
-      #overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: radial-gradient(circle, #1a1f35 0%, #0a0f19 100%);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        color: #0ff;
-        text-align: center;
-      }
-
-      .start-btn {
-        background: transparent;
-        border: 1px solid #0ff;
-        color: #0ff;
-        padding: 15px 40px;
-        font-size: 1.2em;
-        cursor: pointer;
-        margin-top: 30px;
-        letter-spacing: 5px;
-        transition: all 0.3s;
-        box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
-      }
-
-      .start-btn:hover {
-        background: #0ff;
-        color: #0a0f19;
-        box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
-      }
-
-      canvas {
-        display: block;
-        margin: 0 auto;
-      }
+      html, body { margin: 0; padding: 0; background-color: #0a0f19; overflow: hidden; font-family: 'Courier New', monospace; }
+      #back-btn { position: fixed; top: 20px; left: 20px; z-index: 2000; padding: 10px 20px; font-size: 0.9em; background: rgba(0, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.3); backdrop-filter: blur(10px); border-radius: 5px; color: #0ff; text-decoration: none; text-transform: uppercase; letter-spacing: 2px; }
+      #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #1a1f35 0%, #0a0f19 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; color: #0ff; }
+      .start-btn { background: transparent; border: 1px solid #0ff; color: #0ff; padding: 15px 40px; font-size: 1.2em; cursor: pointer; margin-top: 30px; letter-spacing: 5px; }
+      #status-log { position: fixed; bottom: 10px; left: 10px; color: rgba(0, 255, 255, 0.5); font-size: 10px; z-index: 2000; }
     </style>
   </head>
   <body>
     <a href="../perception_demo.html" id="back-btn">< EXIT SYSTEM</a>
+    <div id="status-log">SYSTEM IDLE</div>
 
     <div id="overlay">
-      <div style="font-size: 20px; letter-spacing: 10px; margin-bottom: 20px;">HOLOGRAPHIC INTERFACE</div>
-      <h1 style="font-weight: 300; margin-bottom: 0;">FANCY HAND V2</h1>
-      <p style="color: rgba(0, 255, 255, 0.5); margin-top: 10px;">AUTHORIZED ACCESS ONLY</p>
-      <button class="start-btn" onclick="initSystem()">INITIALIZE</button>
+      <div style="letter-spacing: 10px; margin-bottom: 20px;">VIRTUAL INTERFACE</div>
+      <div id="loading-msg">WAITING FOR CORE MODULES...</div>
+      <button id="init-btn" class="start-btn" onclick="initSystem()" style="display:none;">INITIALIZE</button>
     </div>
 
     <script>
-      let video;
-      let handPose;
-      let hands = [];
+      let video, handPose, hands = [];
       let isReady = false;
+      let smoothedAngle = 0, smoothedX = 0, smoothedY = 0;
+      let mainColor, colors = ['#00ffff', '#ff00ff', '#ffff00'], colorIdx = 0;
+      let glitchTimer = 0;
 
-      // 平滑變數
-      let smoothedAngle = 0; 
-      let smoothedX = 0;
-      let smoothedY = 0;
+      let buttons = [
+        { label: 'COLOR', x: 50, y: 150, w: 100, h: 50, active: false },
+        { label: 'GLITCH', x: 50, y: 220, w: 100, h: 50, active: false },
+        { label: 'EXIT', x: 50, y: 290, w: 100, h: 50, active: false }
+      ];
 
       function setup() {
         createCanvas(windowWidth, windowHeight);
-        textFont('Courier New');
-        angleMode(DEGREES);
+        mainColor = color(colors[colorIdx]);
         
-        // 預載入模型，但不啟動偵測
-        handPose = ml5.handPose({ flipped: true });
+        // 1. 先初始化模型
+        updateLog("LOADING AI MODEL...");
+        handPose = ml5.handPose({ flipped: true }, () => {
+          updateLog("MODEL READY");
+          document.getElementById('loading-msg').style.display = 'none';
+          document.getElementById('init-btn').style.display = 'block';
+        });
       }
 
-      async function initSystem() {
-        // 請求相機權限
-        video = createCapture(VIDEO, () => {
-          document.getElementById('overlay').style.fadeOut;
-          document.getElementById('overlay').style.display = 'none';
-          isReady = true;
-          // 確定相機啟動後才開始偵測，避免 estimateHands 讀取到 null
-          handPose.detectStart(video, gotHands);
+      function updateLog(msg) {
+        document.getElementById('status-log').innerText = `LOG: ${msg}`;
+      }
+
+      function initSystem() {
+        updateLog("REQUESTING CAMERA...");
+        video = createCapture(VIDEO, (stream) => {
+          if (stream) {
+            updateLog("CAMERA ACTIVE");
+            document.getElementById('overlay').style.display = 'none';
+            // 2. 確保影片真的有數據後才開始偵測
+            setTimeout(() => {
+              isReady = true;
+              handPose.detectStart(video, results => {
+                hands = results;
+              });
+              updateLog("DETECTION STARTED");
+            }, 1000);
+          }
         });
         video.size(640, 480);
         video.hide();
       }
 
-      function gotHands(results) {
-        hands = results;
-      }
-
       function draw() {
         background(10, 15, 25);
-        
         if (!isReady) return;
 
-        // 影像背景 (科幻藍調)
+        // 特效處理
+        let offsetX = (glitchTimer > 0) ? random(-10, 10) : 0;
+        if (glitchTimer > 0) glitchTimer--;
+
         push();
-        translate(width, 0);
+        translate(width + offsetX, 0);
         scale(-1, 1);
-        tint(0, 200, 255, 40); 
-        // 居中顯示影像
-        let vW = width;
-        let vH = (video.height / video.width) * width;
-        image(video, 0, (height - vH)/2, vW, vH);
+        tint(red(mainColor), green(mainColor), blue(mainColor), 40);
+        image(video, 0, 0, width, height, 0, 0, video.width, video.height, COVER);
         pop();
 
-        if (hands.length > 0) {
+        if (hands && hands.length > 0) {
+          updateLog(`TRACKING: ${hands.length} HAND(S)`);
           let hand = hands[0];
+          let indexTip = hand.keypoints[8];
+          let tx = map(indexTip.x, 0, 640, 0, width);
+          let ty = map(indexTip.y, 0, 480, 0, height);
+
+          checkButtons(tx, ty);
+          drawVirtualButtons();
           drawSciFiSkeleton(hand);
-          drawFingertips(hand);
           drawHoloDial(hand);
+          
+          fill(255); noStroke(); circle(tx, ty, 8);
+          noFill(); stroke(mainColor); circle(tx, ty, 15 + sin(frameCount*0.2)*5);
         } else {
+          updateLog("SEARCHING FOR TARGET...");
           drawScanningUI();
+          drawVirtualButtons(); // 沒手時按鈕也要在，只是不能按
         }
+      }
+
+      // --- 其餘功能函數保持不變 (checkButtons, drawVirtualButtons, etc.) ---
+      // (為了簡潔，這裡省略與上一版相同的功能函數代碼，請延用上一版的內容)
+      
+      function checkButtons(x, y) {
+        buttons.forEach(btn => {
+          let isInside = x > btn.x && x < btn.x + btn.w && y > btn.y && y < btn.y + btn.h;
+          if (isInside && !btn.active) {
+            btn.active = true;
+            if (btn.label === 'COLOR') { colorIdx = (colorIdx + 1) % colors.length; mainColor = color(colors[colorIdx]); }
+            else if (btn.label === 'GLITCH') { glitchTimer = 30; }
+            else if (btn.label === 'EXIT') { window.location.href = '../perception_demo.html'; }
+          } else if (!isInside) { btn.active = false; }
+        });
+      }
+
+      function drawVirtualButtons() {
+        buttons.forEach(btn => {
+          push(); translate(btn.x, btn.y);
+          noFill(); stroke(mainColor); strokeWeight(btn.active ? 3 : 1);
+          rect(0, 0, btn.w, btn.h, 5);
+          if (btn.active) { fill(red(mainColor), green(mainColor), blue(mainColor), 100); rect(5, 5, btn.w - 10, btn.h - 10); }
+          fill(btn.active ? 255 : mainColor); noStroke(); textAlign(CENTER, CENTER); textSize(12);
+          text(btn.label, btn.w/2, btn.h/2);
+          pop();
+        });
       }
 
       function drawHoloDial(hand) {
-        let wrist = hand.keypoints[0];
-        let middle = hand.keypoints[9];
-        
-        // 座標轉換 (適應視窗縮放)
+        let wrist = hand.keypoints[0], middle = hand.keypoints[9];
         let targetX = map(wrist.x, 0, 640, 0, width);
         let targetY = map(wrist.y, 0, 480, 0, height);
-        
         let angle = atan2(middle.y - wrist.y, middle.x - wrist.x) + 90;
-        
-        smoothedAngle = lerp(smoothedAngle, angle, 0.1); 
-        smoothedX = lerp(smoothedX, targetX, 0.2);
-        smoothedY = lerp(smoothedY, targetY, 0.2);
-        
-        push();
-        translate(smoothedX, smoothedY);
-        
-        // 裝飾環
-        noFill();
-        stroke(0, 255, 255, 80);
-        drawingContext.setLineDash([5, 10]);
-        circle(0, 0, 160);
-        drawingContext.setLineDash([]);
-        
-        rotate(smoothedAngle);
-        
-        // 主撥盤
-        stroke(0, 255, 255);
-        strokeWeight(2);
-        arc(0, 0, 120, 120, 30, 330);
-        
-        for(let i = 0; i < 8; i++) {
-          rotate(45);
-          line(50, 0, 60, 0);
-        }
-        
-        // 指針
-        fill(255, 0, 100);
-        noStroke();
-        triangle(75, 0, 65, -5, 65, 5);
-        
+        smoothedAngle = lerp(smoothedAngle, angle, 0.1); smoothedX = lerp(smoothedX, targetX, 0.2); smoothedY = lerp(smoothedY, targetY, 0.2);
+        push(); translate(smoothedX, smoothedY); rotate(smoothedAngle);
+        noFill(); stroke(mainColor); strokeWeight(2); arc(0, 0, 120, 120, 30, 330);
         pop();
-
-        // 數據標籤
-        fill(0, 255, 255);
-        textSize(16);
-        textAlign(CENTER);
-        text(`POS_X:${int(smoothedX)}`, targetX, targetY + 100);
-        text(`ROT:${int(smoothedAngle)}°`, targetX, targetY + 120);
       }
 
       function drawSciFiSkeleton(hand) {
-        stroke(0, 255, 255, 120);
-        strokeWeight(1);
+        stroke(red(mainColor), green(mainColor), blue(mainColor), 120);
         let connections = handPose.getConnections();
         for (let i = 0; i < connections.length; i++) {
-          let a = connections[i][0];
-          let b = connections[i][1];
+          let a = connections[i][0], b = connections[i][1];
           let x1 = map(hand.keypoints[a].x, 0, 640, 0, width);
           let y1 = map(hand.keypoints[a].y, 0, 480, 0, height);
           let x2 = map(hand.keypoints[b].x, 0, 640, 0, width);
@@ -223,36 +164,12 @@
         }
       }
 
-      function drawFingertips(hand) {
-        let tips = [4, 8, 12, 16, 20];
-        for (let i of tips) {
-          let k = hand.keypoints[i];
-          let x = map(k.x, 0, 640, 0, width);
-          let y = map(k.y, 0, 480, 0, height);
-          
-          let pulse = map(sin(frameCount * 10), -1, 1, 0.5, 1.5);
-          noFill();
-          stroke(255, 255, 255, 150);
-          circle(x, y, 10 + pulse * 5);
-          fill(0, 255, 255);
-          circle(x, y, 3);
-        }
-      }
-
       function drawScanningUI() {
-        stroke(0, 255, 255, 50);
-        let scanY = (frameCount * 5) % height;
-        line(0, scanY, width, scanY);
-        
-        fill(0, 255, 255, 150);
-        noStroke();
-        textAlign(CENTER);
-        text(">>> SCANNING FOR BIOMETRIC DATA <<<", width/2, height/2);
+        stroke(mainColor); line(0, (frameCount * 5) % height, width, (frameCount * 5) % height);
+        fill(mainColor); textAlign(CENTER); text("SYSTEM SCANNING...", width/2, height/2);
       }
 
-      function windowResized() {
-        resizeCanvas(windowWidth, windowHeight);
-      }
+      function windowResized() { resizeCanvas(windowWidth, windowHeight); }
     </script>
   </body>
 </html>
