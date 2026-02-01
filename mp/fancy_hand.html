@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fancy Hand Art - Sci-Fi Hologram</title>
+    <title>Sci-Fi Hand Tracking Holographic Dial</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/addons/p5.sound.min.js"></script>
@@ -15,10 +15,34 @@
         padding: 0;
         background-color: #0a0f19;
         overflow: hidden;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Courier New', Courier, monospace;
       }
 
-      /* 相機引導介面 */
+      /* 回上頁按鈕 */
+      #back-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 2000;
+        padding: 10px 20px;
+        font-size: 0.9em;
+        background: rgba(0, 255, 255, 0.1);
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+        border-radius: 5px;
+        color: #0ff;
+        text-decoration: none;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      #back-btn:hover {
+        background: rgba(0, 255, 255, 0.2);
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+      }
+
+      /* 啟動介面 */
       #overlay {
         position: fixed;
         top: 0;
@@ -31,158 +55,199 @@
         justify-content: center;
         align-items: center;
         z-index: 1000;
-        color: white;
+        color: #0ff;
         text-align: center;
       }
 
-      .btn {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        color: white;
-        padding: 15px 30px;
-        font-size: 1.1em;
-        border-radius: 30px;
+      .start-btn {
+        background: transparent;
+        border: 1px solid #0ff;
+        color: #0ff;
+        padding: 15px 40px;
+        font-size: 1.2em;
         cursor: pointer;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        transition: transform 0.2s, box-shadow 0.2s;
-        text-decoration: none;
-        display: inline-block;
-        margin-top: 20px;
-      }
-
-      .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-      }
-
-      /* 回上頁按鈕 */
-      #back-btn {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        z-index: 2000;
-        padding: 10px 20px;
-        font-size: 0.9em;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        color: white;
-        text-decoration: none;
+        margin-top: 30px;
+        letter-spacing: 5px;
         transition: all 0.3s;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
       }
 
-      #back-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: translateX(-5px);
+      .start-btn:hover {
+        background: #0ff;
+        color: #0a0f19;
+        box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
       }
 
       canvas {
         display: block;
-      }
-
-      #status {
-        position: fixed;
-        bottom: 20px;
-        width: 100%;
-        text-align: center;
-        color: rgba(255,255,255,0.5);
-        font-size: 0.8em;
-        letter-spacing: 2px;
+        margin: 0 auto;
       }
     </style>
   </head>
   <body>
-    <a href="../perception_demo.html" id="back-btn">← Back to Hub</a>
+    <a href="../perception_demo.html" id="back-btn">< EXIT SYSTEM</a>
 
     <div id="overlay">
-      <div style="font-size: 50px; margin-bottom: 10px;">✨</div>
-      <h2 style="margin-bottom: 10px; font-weight: 300;">Fancy Hand Art</h2>
-      <p style="color: rgba(255,255,255,0.6); max-width: 300px;">準備進入數位藝術空間。請允許存取相機以開始體驗。</p>
-      <button class="btn" onclick="startExperience()">啟動相機 (Start Camera)</button>
+      <div style="font-size: 20px; letter-spacing: 10px; margin-bottom: 20px;">HOLOGRAPHIC INTERFACE</div>
+      <h1 style="font-weight: 300; margin-bottom: 0;">FANCY HAND V2</h1>
+      <p style="color: rgba(0, 255, 255, 0.5); margin-top: 10px;">AUTHORIZED ACCESS ONLY</p>
+      <button class="start-btn" onclick="initSystem()">INITIALIZE</button>
     </div>
-
-    <div id="status">INITIALIZING SYSTEM...</div>
 
     <script>
       let video;
       let handPose;
       let hands = [];
-      let isVideoReady = false;
+      let isReady = false;
+
+      // 平滑變數
+      let smoothedAngle = 0; 
+      let smoothedX = 0;
+      let smoothedY = 0;
 
       function setup() {
         createCanvas(windowWidth, windowHeight);
+        textFont('Courier New');
+        angleMode(DEGREES);
         
-        // 初始化 ml5 handPose
-        handPose = ml5.handPose({ flipped: true }, () => {
-          document.getElementById('status').innerText = 'AI MODEL LOADED';
-        });
+        // 預載入模型，但不啟動偵測
+        handPose = ml5.handPose({ flipped: true });
       }
 
-      // 點擊按鈕後才啟動相機
-      function startExperience() {
+      async function initSystem() {
+        // 請求相機權限
         video = createCapture(VIDEO, () => {
-          isVideoReady = true;
+          document.getElementById('overlay').style.fadeOut;
           document.getElementById('overlay').style.display = 'none';
-          document.getElementById('status').innerText = 'SYSTEM ACTIVE';
-          handPose.detectStart(video, results => {
-            hands = results;
-          });
+          isReady = true;
+          // 確定相機啟動後才開始偵測，避免 estimateHands 讀取到 null
+          handPose.detectStart(video, gotHands);
         });
         video.size(640, 480);
         video.hide();
       }
 
+      function gotHands(results) {
+        hands = results;
+      }
+
       function draw() {
-        background(10, 15, 25); // 深藍黑色背景
+        background(10, 15, 25);
+        
+        if (!isReady) return;
 
-        if (!isVideoReady) return;
-
-        // 繪製半透明的攝影機畫面 (增加科幻感)
+        // 影像背景 (科幻藍調)
         push();
         translate(width, 0);
         scale(-1, 1);
-        tint(100, 150, 255, 30); 
-        image(video, 0, 0, width, height, 0, 0, video.width, video.height, COVER);
+        tint(0, 200, 255, 40); 
+        // 居中顯示影像
+        let vW = width;
+        let vH = (video.height / video.width) * width;
+        image(video, 0, (height - vH)/2, vW, vH);
         pop();
 
-        // 繪製手部藝術效果
-        for (let i = 0; i < hands.length; i++) {
-          let hand = hands[i];
-          drawHandArt(hand);
+        if (hands.length > 0) {
+          let hand = hands[0];
+          drawSciFiSkeleton(hand);
+          drawFingertips(hand);
+          drawHoloDial(hand);
+        } else {
+          drawScanningUI();
         }
       }
 
-      function drawHandArt(hand) {
-        // 繪製骨架線條
-        stroke(102, 126, 234, 150);
+      function drawHoloDial(hand) {
+        let wrist = hand.keypoints[0];
+        let middle = hand.keypoints[9];
+        
+        // 座標轉換 (適應視窗縮放)
+        let targetX = map(wrist.x, 0, 640, 0, width);
+        let targetY = map(wrist.y, 0, 480, 0, height);
+        
+        let angle = atan2(middle.y - wrist.y, middle.x - wrist.x) + 90;
+        
+        smoothedAngle = lerp(smoothedAngle, angle, 0.1); 
+        smoothedX = lerp(smoothedX, targetX, 0.2);
+        smoothedY = lerp(smoothedY, targetY, 0.2);
+        
+        push();
+        translate(smoothedX, smoothedY);
+        
+        // 裝飾環
+        noFill();
+        stroke(0, 255, 255, 80);
+        drawingContext.setLineDash([5, 10]);
+        circle(0, 0, 160);
+        drawingContext.setLineDash([]);
+        
+        rotate(smoothedAngle);
+        
+        // 主撥盤
+        stroke(0, 255, 255);
         strokeWeight(2);
+        arc(0, 0, 120, 120, 30, 330);
+        
+        for(let i = 0; i < 8; i++) {
+          rotate(45);
+          line(50, 0, 60, 0);
+        }
+        
+        // 指針
+        fill(255, 0, 100);
+        noStroke();
+        triangle(75, 0, 65, -5, 65, 5);
+        
+        pop();
+
+        // 數據標籤
+        fill(0, 255, 255);
+        textSize(16);
+        textAlign(CENTER);
+        text(`POS_X:${int(smoothedX)}`, targetX, targetY + 100);
+        text(`ROT:${int(smoothedAngle)}°`, targetX, targetY + 120);
+      }
+
+      function drawSciFiSkeleton(hand) {
+        stroke(0, 255, 255, 120);
+        strokeWeight(1);
         let connections = handPose.getConnections();
         for (let i = 0; i < connections.length; i++) {
           let a = connections[i][0];
           let b = connections[i][1];
-          let kp1 = hand.keypoints[a];
-          let kp2 = hand.keypoints[b];
-          line(kp1.x * (width/video.width), kp1.y * (height/video.height), 
-               kp2.x * (width/video.width), kp2.y * (height/video.height));
+          let x1 = map(hand.keypoints[a].x, 0, 640, 0, width);
+          let y1 = map(hand.keypoints[a].y, 0, 480, 0, height);
+          let x2 = map(hand.keypoints[b].x, 0, 640, 0, width);
+          let y2 = map(hand.keypoints[b].y, 0, 480, 0, height);
+          line(x1, y1, x2, y2);
         }
+      }
 
-        // 繪製指尖流光效果
+      function drawFingertips(hand) {
         let tips = [4, 8, 12, 16, 20];
-        tips.forEach((index, i) => {
-          let kp = hand.keypoints[index];
-          let x = kp.x * (width/video.width);
-          let y = kp.y * (height/video.height);
+        for (let i of tips) {
+          let k = hand.keypoints[i];
+          let x = map(k.x, 0, 640, 0, width);
+          let y = map(k.y, 0, 480, 0, height);
           
-          let pulse = map(sin(frameCount * 0.1 + i), -1, 1, 10, 25);
+          let pulse = map(sin(frameCount * 10), -1, 1, 0.5, 1.5);
           noFill();
-          stroke(118, 75, 162, 200);
-          ellipse(x, y, pulse, pulse);
-          
-          fill(255);
-          noStroke();
-          circle(x, y, 5);
-        });
+          stroke(255, 255, 255, 150);
+          circle(x, y, 10 + pulse * 5);
+          fill(0, 255, 255);
+          circle(x, y, 3);
+        }
+      }
+
+      function drawScanningUI() {
+        stroke(0, 255, 255, 50);
+        let scanY = (frameCount * 5) % height;
+        line(0, scanY, width, scanY);
+        
+        fill(0, 255, 255, 150);
+        noStroke();
+        textAlign(CENTER);
+        text(">>> SCANNING FOR BIOMETRIC DATA <<<", width/2, height/2);
       }
 
       function windowResized() {
