@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Gallery - Full Screen Viewer</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d1b2d 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-viewer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-image {
+            max-width: 85%;
+            max-height: 85%;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 0 60px rgba(255, 182, 193, 0.3);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(135deg, rgba(255, 182, 193, 0.9), rgba(248, 187, 217, 0.9));
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #8b4577;
+            font-size: 24px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            font-weight: bold;
+        }
+
+        .nav-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 182, 193, 1), rgba(248, 187, 217, 1));
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 8px 25px rgba(255, 182, 193, 0.4);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background: rgba(100, 100, 100, 0.5);
+            color: #666;
+        }
+
+        .nav-btn:disabled:hover {
+            transform: translateY(-50%);
+            background: rgba(100, 100, 100, 0.5);
+            box-shadow: none;
+        }
+
+        .prev-btn {
+            left: 30px;
+        }
+
+        .next-btn {
+            right: 30px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, rgba(255, 182, 193, 0.9), rgba(248, 187, 217, 0.9));
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #8b4577;
+            font-size: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            font-weight: bold;
+        }
+
+        .close-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 182, 193, 1), rgba(248, 187, 217, 1));
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(255, 182, 193, 0.4);
+        }
+
+        .photo-info {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(255, 182, 193, 0.9), rgba(248, 187, 217, 0.9));
+            color: #8b4577;
+            padding: 12px 24px;
+            border-radius: 25px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(255, 182, 193, 0.3);
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 182, 193, 0.8);
+            font-size: 32px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            0% { 
+                opacity: 0; 
+                transform: scale(0.95);
+            }
+            100% { 
+                opacity: 1; 
+                transform: scale(1);
+            }
+        }
+
+        .main-image.loaded {
+            animation: fadeIn 0.4s ease;
+        }
+
+        .thumbnail-nav {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            max-width: 80%;
+            overflow-x: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .thumbnail-nav::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .thumbnail-nav::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .thumbnail-nav::-webkit-scrollbar-thumb {
+            background: rgba(255, 182, 193, 0.6);
+            border-radius: 2px;
+        }
+
+        .thumbnail-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .thumbnail-item:hover {
+            transform: scale(1.1);
+            border-color: rgba(255, 182, 193, 0.8);
+        }
+
+        .thumbnail-item.active {
+            border-color: rgba(255, 182, 193, 1);
+            transform: scale(1.15);
+            box-shadow: 0 4px 15px rgba(255, 182, 193, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .nav-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 18px;
+            }
+            
+            .prev-btn {
+                left: 15px;
+            }
+            
+            .next-btn {
+                right: 15px;
+            }
+            
+            .close-btn {
+                top: 15px;
+                right: 15px;
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+            
+            .main-image {
+                max-width: 95%;
+                max-height: 70%;
+            }
+
+            .photo-info {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+
+            .thumbnail-nav {
+                bottom: 60px;
+                max-width: 90%;
+            }
+
+            .thumbnail-item {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="photo-viewer">
+        <div class="loading" id="loading">
+            <i class="fas fa-heart"></i>
+        </div>
+        <img class="main-image" id="mainImage" style="opacity: 0;" alt="Photo">
+        <button class="nav-btn prev-btn" id="prevBtn" onclick="previousPhoto()">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="nav-btn next-btn" id="nextBtn" onclick="nextPhoto()">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+        <button class="close-btn" onclick="window.close()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="photo-info" id="photoInfo">
+            Photo 1 of 100
+        </div>
+        <div class="thumbnail-nav" id="thumbnailNav">
+            <!-- Thumbnails will be generated here -->
+        </div>
+    </div>
+
+    <script>
+        let currentPhoto = 1;
+        const totalPhotos = 100;
+        const baseUrl = 'https://profluarn.github.io/p1/p';
+        const mainImage = document.getElementById('mainImage');
+        const loading = document.getElementById('loading');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const photoInfo = document.getElementById('photoInfo');
+        const thumbnailNav = document.getElementById('thumbnailNav');
+
+        // Get photo number from URL parameter
+        function getPhotoFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const photo = parseInt(urlParams.get('photo')) || 1;
+            return Math.max(1, Math.min(photo, totalPhotos));
+        }
+
+        function updateURL(photoNum) {
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('photo', photoNum);
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        function loadPhoto(photoNum) {
+            loading.style.display = 'block';
+            mainImage.style.opacity = '0';
+            mainImage.classList.remove('loaded');
+            
+            const photoURL = baseUrl + photoNum + '.jpg';
+            
+            const img = new Image();
+            img.onload = function() {
+                mainImage.src = photoURL;
+                mainImage.style.opacity = '1';
+                mainImage.classList.add('loaded');
+                loading.style.display = 'none';
+                updateNavigation();
+                updateInfo();
+                updateThumbnails();
+                updateURL(photoNum);
+            };
+            img.onerror = function() {
+                loading.style.display = 'none';
+                console.error('Photo not found:', photoURL);
+                // Try to load next available photo
+                if (photoNum < totalPhotos) {
+                    nextPhoto();
+                } else if (photoNum > 1) {
+                    previousPhoto();
+                }
+            };
+            img.src = photoURL;
+        }
+
+        function updateNavigation() {
+            prevBtn.disabled = currentPhoto <= 1;
+            nextBtn.disabled = currentPhoto >= totalPhotos;
+        }
+
+        function updateInfo() {
+            photoInfo.textContent = `Photo ${currentPhoto} of ${totalPhotos}`;
+        }
+
+        function previousPhoto() {
+            if (currentPhoto > 1) {
+                currentPhoto--;
+                loadPhoto(currentPhoto);
+            }
+        }
+
+        function nextPhoto() {
+            if (currentPhoto < totalPhotos) {
+                currentPhoto++;
+                loadPhoto(currentPhoto);
+            }
+        }
+
+        function goToPhoto(photoNum) {
+            if (photoNum >= 1 && photoNum <= totalPhotos) {
+                currentPhoto = photoNum;
+                loadPhoto(currentPhoto);
+            }
+        }
+
+        function generateThumbnails() {
+            let thumbnailsHtml = '';
+            for (let i = 1; i <= totalPhotos; i++) {
+                const thumbnailUrl = baseUrl + i + '.jpg';
+                thumbnailsHtml += `
+                    <div class="thumbnail-item" 
+                         onclick="goToPhoto(${i})" 
+                         data-photo="${i}"
+                         style="background-image: url('${thumbnailUrl}')">
+                    </div>
+                `;
+            }
+            thumbnailNav.innerHTML = thumbnailsHtml;
+        }
+
+        function updateThumbnails() {
+            const thumbnails = thumbnailNav.querySelectorAll('.thumbnail-item');
+            thumbnails.forEach(thumbnail => {
+                const photoNum = parseInt(thumbnail.dataset.photo);
+                if (photoNum === currentPhoto) {
+                    thumbnail.classList.add('active');
+                    // Scroll to active thumbnail
+                    thumbnail.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+                } else {
+                    thumbnail.classList.remove('active');
+                }
+            });
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'Escape':
+                    window.close();
+                    break;
+                case 'ArrowLeft':
+                    previousPhoto();
+                    break;
+                case 'ArrowRight':
+                    nextPhoto();
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    nextPhoto();
+                    break;
+                case 'Home':
+                    goToPhoto(1);
+                    break;
+                case 'End':
+                    goToPhoto(totalPhotos);
+                    break;
+            }
+        });
+
+        // Touch/swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    // Swiped left - next photo
+                    nextPhoto();
+                } else {
+                    // Swiped right - previous photo
+                    previousPhoto();
+                }
+            }
+        }
+
+        // Initialize
+        currentPhoto = getPhotoFromURL();
+        generateThumbnails();
+        loadPhoto(currentPhoto);
+    </script>
+</body>
+</html>
