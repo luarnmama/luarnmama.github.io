@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sci-Fi Hand Tracking - Dual Hand Energy Link</title>
+    <title>Sci-Fi Hand Tracking - Proximity Energy Link</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/addons/p5.sound.min.js"></script>
@@ -18,9 +18,10 @@
   </head>
   <body>
     <a href="../perception_demo.html" id="back-btn">RETURN_TO_HUB</a>
+
     <div id="overlay">
-      <div style="letter-spacing: 8px; font-size: 1.5em;">DUAL-LINK SYSTEM INITIALIZING</div>
-      <button class="start-btn" onclick="initSystem()">ACTIVATE_CORE</button>
+      <div style="letter-spacing: 8px; font-size: 1.5em;">PROXIMITY_LINK_ACTIVE</div>
+      <button class="start-btn" onclick="initSystem()">INITIALIZE_LINK</button>
     </div>
 
     <script>
@@ -45,7 +46,6 @@
         envelope.setADSR(0.001, 0.05, 0.1, 0.1);
         envelope.setRange(0.5, 0);
 
-        // 能量連線專用低頻音
         linkOsc = new p5.Oscillator('sawtooth');
         linkOsc.amp(0);
         
@@ -62,30 +62,28 @@
           setTimeout(() => {
             isReady = true;
             handPose.detectStart(video, results => hands = results);
-          }, 800);
+          }, 1000);
         });
         video.size(640, 480);
         video.hide();
       }
 
-      function playTone(freq, duration = 0.08) {
-        osc.freq(freq); osc.start(); envelope.play(osc);
-      }
+      function playTone(freq) { osc.freq(freq); osc.start(); envelope.play(osc); }
 
       function playBootSound() {
-        let f = 200;
+        let f = 300;
         let interval = setInterval(() => {
-          playTone(f, 0.02); f += 150;
+          playTone(f, 0.02); f += 200;
           if (f > 1500) clearInterval(interval);
-        }, 40);
+        }, 60);
       }
 
       function draw() {
         background(10, 15, 25);
         if (!isReady) return;
 
-        let gx = (glitchTimer > 0) ? random(-12, 12) : 0;
-        let gy = (glitchTimer > 0) ? random(-4, 4) : 0;
+        let gx = (glitchTimer > 0) ? random(-15, 15) : 0;
+        let gy = (glitchTimer > 0) ? random(-5, 5) : 0;
         if (glitchTimer > 0) glitchTimer--;
 
         push();
@@ -95,7 +93,6 @@
         pop();
 
         if (hands && hands.length > 0) {
-          // 遍歷所有偵測到的手 (最多兩隻)
           for (let i = 0; i < hands.length; i++) {
             let hand = hands[i];
             let indexTip = hand.keypoints[8];
@@ -109,11 +106,17 @@
             drawCursor(tx, ty);
           }
 
-          // --- 能量連線邏輯 ---
+          // --- 強化版多手能量連線 ---
           if (hands.length === 2) {
-            drawEnergyLink(hands[0], hands[1], gx, gy);
-            linkOsc.amp(0.1, 0.1);
-            linkOsc.freq(100 + sin(frameCount*10)*20);
+            let d = calcDistance(hands[0], hands[1]);
+            // 將距離映射為 0-1 的係數 (距離 100px 為 1, 距離 800px 為 0)
+            let proximity = map(d, 100, 800, 1, 0, true);
+            
+            drawEnergyLink(hands[0], hands[1], proximity, gx, gy);
+            
+            // 聲音隨距離變大
+            linkOsc.amp(map(proximity, 0, 1, 0.05, 0.5), 0.1);
+            linkOsc.freq(80 + proximity * 100 + sin(frameCount*20)*10);
             linkOsc.start();
           } else {
             linkOsc.amp(0, 0.5);
@@ -125,32 +128,47 @@
         drawVirtualButtons(gx, gy);
       }
 
-      function drawEnergyLink(h1, h2, gx, gy) {
+      function calcDistance(h1, h2) {
+        let p1x = map(h1.keypoints[9].x, 0, 640, 0, width);
+        let p1y = map(h1.keypoints[9].y, 0, 480, 0, height);
+        let p2x = map(h2.keypoints[9].x, 0, 640, 0, width);
+        let p2y = map(h2.keypoints[9].y, 0, 480, 0, height);
+        return dist(p1x, p1y, p2x, p2y);
+      }
+
+      function drawEnergyLink(h1, h2, k, gx, gy) {
         let p1x = map(h1.keypoints[9].x, 0, 640, 0, width) + gx;
         let p1y = map(h1.keypoints[9].y, 0, 480, 0, height) + gy;
         let p2x = map(h2.keypoints[9].x, 0, 640, 0, width) + gx;
         let p2y = map(h2.keypoints[9].y, 0, 480, 0, height) + gy;
 
-        strokeWeight(random(1, 4));
-        stroke(255, 200);
+        // 顏色隨距離變紅
+        let linkColor = lerpColor(mainColor, color(255, 0, 0), k);
         
-        // 核心連線 (帶抖動)
+        // 線條隨距離變粗
+        strokeWeight(1 + k * 14);
+        stroke(linkColor);
+        
+        // 核心連線 (電弧效果)
         beginShape();
         noFill();
-        for(let t = 0; t <= 1; t += 0.1) {
-          let x = lerp(p1x, p2x, t) + random(-5, 5);
-          let y = lerp(p1y, p2y, t) + random(-5, 5);
+        for(let t = 0; t <= 1; t += 0.05) {
+          let x = lerp(p1x, p2x, t) + random(-k*20, k*20);
+          let y = lerp(p1y, p2y, t) + random(-k*20, k*20);
           vertex(x, y);
         }
         endShape();
 
-        // 外部光暈
-        stroke(mainColor);
-        strokeWeight(1);
-        line(p1x, p1y, p2x, p2y);
+        // 能量核心閃爍
+        fill(255);
+        noStroke();
+        circle((p1x+p2x)/2, (p1y+p2y)/2, 15 + k*30 + sin(frameCount*30)*10);
         
-        // 能量核心
-        fill(255); circle((p1x+p2x)/2, (p1y+p2y)/2, 10 + sin(frameCount*20)*5);
+        // 能量文字提示
+        fill(linkColor);
+        textAlign(CENTER);
+        textSize(10 + k*10);
+        text(`ENERGY_OUTPUT: ${int(k*100)}%`, (p1x+p2x)/2, (p1y+p2y)/2 - 40 - k*20);
       }
 
       function drawHoloDial(hand, id, gx, gy) {
@@ -164,7 +182,7 @@
         smoothedPos[id].y = lerp(smoothedPos[id].y, targetY, 0.2);
 
         if (abs(smoothedAngle[id] - lastTickAngle[id]) >= 15) {
-          playTone(1500, 0.01);
+          playTone(1600, 0.01);
           lastTickAngle[id] = smoothedAngle[id];
         }
         
@@ -172,9 +190,9 @@
         translate(smoothedPos[id].x + gx, smoothedPos[id].y + gy);
         rotate(smoothedAngle[id]);
         noFill(); stroke(mainColor); strokeWeight(2);
-        arc(0, 0, 140, 140, -40, 220);
-        for(let i = 0; i < 12; i++) { rotate(30); stroke(mainColor, 100); line(55, 0, 65, 0); }
-        fill(255, 60, 100); noStroke(); triangle(80, 0, 70, -6, 70, 6);
+        arc(0, 0, 130, 130, -40, 220);
+        for(let i = 0; i < 12; i++) { rotate(30); stroke(mainColor, 100); line(50, 0, 58, 0); }
+        fill(255, 50, 80); noStroke(); triangle(75, 0, 65, -5, 65, 5);
         pop();
         
         push();
@@ -183,15 +201,14 @@
         pop();
       }
 
-      // --- 基礎繪圖功能 ---
       function checkButtons(x, y) {
         buttons.forEach(btn => {
           let isInside = x > btn.x && x < btn.x + btn.w && y > btn.y && y < btn.y + btn.h;
           if (isInside && !btn.active) {
             btn.active = true;
-            playTone(1000, 0.05);
+            playTone(1000);
             if (btn.label === 'COLOR') { colorIdx = (colorIdx + 1) % colors.length; mainColor = color(colors[colorIdx]); }
-            else if (btn.label === 'GLITCH') { glitchTimer = 25; playTone(150, 0.2); }
+            else if (btn.label === 'GLITCH') { glitchTimer = 25; playTone(150); }
             else if (btn.label === 'EXIT') window.location.href = '../perception_demo.html';
           } else if (!isInside) { btn.active = false; }
         });
