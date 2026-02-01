@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sci-Fi Hand Tracking - Virtual Interface</title>
+    <title>Sci-Fi Hand Tracking - Sonic Interface</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/addons/p5.sound.min.js"></script>
@@ -14,25 +14,24 @@
       #back-btn { position: fixed; top: 20px; left: 20px; z-index: 2000; padding: 10px 20px; font-size: 0.9em; background: rgba(0, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.3); backdrop-filter: blur(10px); border-radius: 5px; color: #0ff; text-decoration: none; text-transform: uppercase; letter-spacing: 2px; }
       #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #1a1f35 0%, #0a0f19 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; color: #0ff; }
       .start-btn { background: transparent; border: 1px solid #0ff; color: #0ff; padding: 15px 40px; font-size: 1.2em; cursor: pointer; margin-top: 30px; letter-spacing: 5px; }
-      #status-log { position: fixed; bottom: 10px; left: 10px; color: rgba(0, 255, 255, 0.5); font-size: 10px; z-index: 2000; }
     </style>
   </head>
   <body>
     <a href="../perception_demo.html" id="back-btn">< EXIT SYSTEM</a>
-    <div id="status-log">SYSTEM IDLE</div>
 
     <div id="overlay">
-      <div style="letter-spacing: 10px; margin-bottom: 20px;">VIRTUAL INTERFACE</div>
-      <div id="loading-msg">WAITING FOR CORE MODULES...</div>
-      <button id="init-btn" class="start-btn" onclick="initSystem()" style="display:none;">INITIALIZE</button>
+      <div style="letter-spacing: 10px; margin-bottom: 20px;">SONIC INTERFACE</div>
+      <button class="start-btn" onclick="initSystem()">INITIALIZE</button>
     </div>
 
     <script>
       let video, handPose, hands = [];
-      let isReady = false;
+      let isReady = false, handPreviouslyDetected = false;
       let smoothedAngle = 0, smoothedX = 0, smoothedY = 0;
       let mainColor, colors = ['#00ffff', '#ff00ff', '#ffff00'], colorIdx = 0;
-      let glitchTimer = 0;
+      
+      // 音效引擎變數
+      let osc, envelope;
 
       let buttons = [
         { label: 'COLOR', x: 50, y: 150, w: 100, h: 50, active: false },
@@ -44,56 +43,56 @@
         createCanvas(windowWidth, windowHeight);
         mainColor = color(colors[colorIdx]);
         
-        // 1. 先初始化模型
-        updateLog("LOADING AI MODEL...");
-        handPose = ml5.handPose({ flipped: true }, () => {
-          updateLog("MODEL READY");
-          document.getElementById('loading-msg').style.display = 'none';
-          document.getElementById('init-btn').style.display = 'block';
-        });
-      }
-
-      function updateLog(msg) {
-        document.getElementById('status-log').innerText = `LOG: ${msg}`;
+        // 初始化合成器
+        osc = new p5.Oscillator('sine');
+        envelope = new p5.Envelope();
+        envelope.setADSR(0.001, 0.1, 0.1, 0.1); // 快速的啟動與衰減
+        envelope.setRange(0.8, 0);
+        
+        handPose = ml5.handPose({ flipped: true });
+        textFont('Courier New');
+        angleMode(DEGREES);
       }
 
       function initSystem() {
-        updateLog("REQUESTING CAMERA...");
-        video = createCapture(VIDEO, (stream) => {
-          if (stream) {
-            updateLog("CAMERA ACTIVE");
-            document.getElementById('overlay').style.display = 'none';
-            // 2. 確保影片真的有數據後才開始偵測
-            setTimeout(() => {
-              isReady = true;
-              handPose.detectStart(video, results => {
-                hands = results;
-              });
-              updateLog("DETECTION STARTED");
-            }, 1000);
-          }
+        userStartAudio(); // 啟動瀏覽器音訊上下文
+        playTone(440, 0.5); // 啟動提示音
+        
+        video = createCapture(VIDEO, () => {
+          document.getElementById('overlay').style.display = 'none';
+          setTimeout(() => {
+            isReady = true;
+            handPose.detectStart(video, results => hands = results);
+          }, 1000);
         });
         video.size(640, 480);
         video.hide();
+      }
+
+      // 產生科幻音效的通用函數
+      function playTone(freq, duration = 0.1) {
+        osc.freq(freq);
+        osc.start();
+        envelope.play(osc, 0, duration);
       }
 
       function draw() {
         background(10, 15, 25);
         if (!isReady) return;
 
-        // 特效處理
-        let offsetX = (glitchTimer > 0) ? random(-10, 10) : 0;
-        if (glitchTimer > 0) glitchTimer--;
-
         push();
-        translate(width + offsetX, 0);
-        scale(-1, 1);
+        translate(width, 0); scale(-1, 1);
         tint(red(mainColor), green(mainColor), blue(mainColor), 40);
         image(video, 0, 0, width, height, 0, 0, video.width, video.height, COVER);
         pop();
 
         if (hands && hands.length > 0) {
-          updateLog(`TRACKING: ${hands.length} HAND(S)`);
+          // 偵測到手部的瞬間發出提示音
+          if (!handPreviouslyDetected) {
+            playTone(880, 0.05); 
+            handPreviouslyDetected = true;
+          }
+
           let hand = hands[0];
           let indexTip = hand.keypoints[8];
           let tx = map(indexTip.x, 0, 640, 0, width);
@@ -102,38 +101,41 @@
           checkButtons(tx, ty);
           drawVirtualButtons();
           drawSciFiSkeleton(hand);
+          drawFingertips(hand);
           drawHoloDial(hand);
-          
-          fill(255); noStroke(); circle(tx, ty, 8);
-          noFill(); stroke(mainColor); circle(tx, ty, 15 + sin(frameCount*0.2)*5);
+          drawCursor(tx, ty);
         } else {
-          updateLog("SEARCHING FOR TARGET...");
+          handPreviouslyDetected = false;
           drawScanningUI();
-          drawVirtualButtons(); // 沒手時按鈕也要在，只是不能按
+          drawVirtualButtons();
         }
       }
 
-      // --- 其餘功能函數保持不變 (checkButtons, drawVirtualButtons, etc.) ---
-      // (為了簡潔，這裡省略與上一版相同的功能函數代碼，請延用上一版的內容)
-      
       function checkButtons(x, y) {
         buttons.forEach(btn => {
           let isInside = x > btn.x && x < btn.x + btn.w && y > btn.y && y < btn.y + btn.h;
           if (isInside && !btn.active) {
             btn.active = true;
-            if (btn.label === 'COLOR') { colorIdx = (colorIdx + 1) % colors.length; mainColor = color(colors[colorIdx]); }
-            else if (btn.label === 'GLITCH') { glitchTimer = 30; }
-            else if (btn.label === 'EXIT') { window.location.href = '../perception_demo.html'; }
-          } else if (!isInside) { btn.active = false; }
+            playTone(1200, 0.02); // 觸碰音 (更高頻的嗶聲)
+            
+            if (btn.label === 'COLOR') { 
+              colorIdx = (colorIdx + 1) % colors.length; 
+              mainColor = color(colors[colorIdx]); 
+            } else if (btn.label === 'EXIT') { 
+              window.location.href = '../perception_demo.html'; 
+            }
+          } else if (!isInside) {
+            btn.active = false;
+          }
         });
       }
 
+      // --- 視覺渲染部分與之前相同 ---
       function drawVirtualButtons() {
         buttons.forEach(btn => {
           push(); translate(btn.x, btn.y);
-          noFill(); stroke(mainColor); strokeWeight(btn.active ? 3 : 1);
-          rect(0, 0, btn.w, btn.h, 5);
-          if (btn.active) { fill(red(mainColor), green(mainColor), blue(mainColor), 100); rect(5, 5, btn.w - 10, btn.h - 10); }
+          noFill(); stroke(mainColor); rect(0, 0, btn.w, btn.h, 2);
+          if (btn.active) { fill(red(mainColor), green(mainColor), blue(mainColor), 80); rect(4, 4, btn.w-8, btn.h-8); }
           fill(btn.active ? 255 : mainColor); noStroke(); textAlign(CENTER, CENTER); textSize(12);
           text(btn.label, btn.w/2, btn.h/2);
           pop();
@@ -142,31 +144,40 @@
 
       function drawHoloDial(hand) {
         let wrist = hand.keypoints[0], middle = hand.keypoints[9];
-        let targetX = map(wrist.x, 0, 640, 0, width);
-        let targetY = map(wrist.y, 0, 480, 0, height);
+        let targetX = map(wrist.x, 0, 640, 0, width), targetY = map(wrist.y, 0, 480, 0, height);
         let angle = atan2(middle.y - wrist.y, middle.x - wrist.x) + 90;
         smoothedAngle = lerp(smoothedAngle, angle, 0.1); smoothedX = lerp(smoothedX, targetX, 0.2); smoothedY = lerp(smoothedY, targetY, 0.2);
         push(); translate(smoothedX, smoothedY); rotate(smoothedAngle);
-        noFill(); stroke(mainColor); strokeWeight(2); arc(0, 0, 120, 120, 30, 330);
+        noFill(); stroke(mainColor); arc(0, 0, 110, 110, -45, 225);
         pop();
       }
 
+      function drawFingertips(hand) {
+        [4, 8, 12, 16, 20].forEach((idx) => {
+          let k = hand.keypoints[idx];
+          let x = map(k.x, 0, 640, 0, width), y = map(k.y, 0, 480, 0, height);
+          noFill(); stroke(255, 150); circle(x, y, 12);
+          fill(255, 200); noStroke(); textSize(9); text(`ID:${idx}`, x + 18, y - 15);
+        });
+      }
+
       function drawSciFiSkeleton(hand) {
-        stroke(red(mainColor), green(mainColor), blue(mainColor), 120);
+        stroke(red(mainColor), green(mainColor), blue(mainColor), 100);
         let connections = handPose.getConnections();
         for (let i = 0; i < connections.length; i++) {
           let a = connections[i][0], b = connections[i][1];
-          let x1 = map(hand.keypoints[a].x, 0, 640, 0, width);
-          let y1 = map(hand.keypoints[a].y, 0, 480, 0, height);
-          let x2 = map(hand.keypoints[b].x, 0, 640, 0, width);
-          let y2 = map(hand.keypoints[b].y, 0, 480, 0, height);
-          line(x1, y1, x2, y2);
+          line(map(hand.keypoints[a].x, 0, 640, 0, width), map(hand.keypoints[a].y, 0, 480, 0, height),
+               map(hand.keypoints[b].x, 0, 640, 0, width), map(hand.keypoints[b].y, 0, 480, 0, height));
         }
       }
 
+      function drawCursor(tx, ty) {
+        fill(255); circle(tx, ty, 6);
+        noFill(); stroke(mainColor); circle(tx, ty, 15 + sin(frameCount*0.2)*5);
+      }
+
       function drawScanningUI() {
-        stroke(mainColor); line(0, (frameCount * 5) % height, width, (frameCount * 5) % height);
-        fill(mainColor); textAlign(CENTER); text("SYSTEM SCANNING...", width/2, height/2);
+        stroke(mainColor, 100); line(0, (frameCount * 5) % height, width, (frameCount * 5) % height);
       }
 
       function windowResized() { resizeCanvas(windowWidth, windowHeight); }
