@@ -1,87 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Smart Assistant</title>
+    <title>AI 智能助理</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="/pic/favicon.ico">
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
-            --secondary-gradient: linear-gradient(135deg, #ff9ac1 0%, #e91e63 100%);
-            --tertiary-gradient: linear-gradient(135deg, #ffb3d1 0%, #ff4081 100%);
-            --chat-bg: linear-gradient(135deg, #ffeef4 0%, #ffe0eb 100%);
-            --user-bubble: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
-            --ai-bubble: linear-gradient(135deg, #ff9ac1 0%, #e91e63 100%);
-            --accent-pink: #ff6b9d;
-            --deep-pink: #c44569;
-            --light-pink: #ffcce0;
-            --ultra-light-pink: #fef7fa;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --chat-bg: #f8f9fa;
+            --user-bubble: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --ai-bubble: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
 
         body {
-            background: linear-gradient(135deg, #ff6b9d 0%, #c44569 50%, #ff9ac1 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 8s ease infinite;
+            background: var(--primary-gradient);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
         .chat-container {
             background: white;
-            border-radius: 25px;
-            box-shadow: 0 30px 80px rgba(255, 107, 157, 0.3);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             max-width: 800px;
             margin: 2rem auto;
             min-height: 600px;
             display: flex;
             flex-direction: column;
-            backdrop-filter: blur(20px);
-            border: 3px solid rgba(255, 182, 193, 0.3);
-            animation: containerFloat 6s ease-in-out infinite;
-            position: relative;
-        }
-
-        @keyframes containerFloat {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-5px) scale(1.01); }
-        }
-
-        .chat-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
-            animation: shimmerEffect 3s infinite;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        @keyframes shimmerEffect {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
         }
 
         .chat-header {
             background: var(--primary-gradient);
             color: white;
-            padding: 2rem;
+            padding: 1.5rem;
             text-align: center;
             position: relative;
-            overflow: hidden;
-            z-index: 2;
         }
 
         .chat-header::before {
@@ -90,59 +48,28 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #ff6b9d, #c44569, #ff9ac1, #e91e63, #ff6b9d);
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
             background-size: 300% 300%;
-            animation: rainbowFlow 4s linear infinite;
+            animation: gradient 3s ease infinite;
         }
 
-        @keyframes rainbowFlow {
+        @keyframes gradient {
             0% { background-position: 0% 50%; }
-            100% { background-position: 300% 50%; }
-        }
-
-        .chat-header::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: headerShimmer 4s infinite;
-        }
-
-        @keyframes headerShimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .chat-header h1 {
             margin: 0;
-            font-size: 2rem;
-            font-weight: 700;
-            animation: titlePulse 3s ease-in-out infinite;
-            position: relative;
-            z-index: 3;
-        }
-
-        @keyframes titlePulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
+            font-size: 1.8rem;
+            font-weight: 600;
         }
 
         .chat-status {
-            font-size: 1rem;
-            opacity: 0.95;
-            margin-top: 0.8rem;
-            animation: statusFloat 2s ease-in-out infinite;
-            position: relative;
-            z-index: 3;
-        }
-
-        @keyframes statusFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-2px); }
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
         }
 
         .chat-messages {
@@ -151,45 +78,22 @@
             background: var(--chat-bg);
             overflow-y: auto;
             max-height: 400px;
-            position: relative;
-        }
-
-        .chat-messages::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: 
-                radial-gradient(circle at 20% 20%, rgba(255, 107, 157, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(196, 69, 105, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 60%, rgba(255, 182, 193, 0.1) 0%, transparent 50%);
-            pointer-events: none;
-            animation: backgroundPulse 6s ease-in-out infinite;
-        }
-
-        @keyframes backgroundPulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.6; }
         }
 
         .message {
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             display: flex;
-            animation: messageSlideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            z-index: 1;
+            animation: slideIn 0.3s ease-out;
         }
 
-        @keyframes messageSlideIn {
+        @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateY(30px) scale(0.9);
+                transform: translateY(20px);
             }
             to {
                 opacity: 1;
-                transform: translateY(0) scale(1);
+                transform: translateY(0);
             }
         }
 
@@ -203,24 +107,14 @@
 
         .message-bubble {
             max-width: 70%;
-            padding: 1.2rem 1.8rem;
-            border-radius: 25px;
+            padding: 1rem 1.5rem;
+            border-radius: 20px;
             color: white;
-            font-size: 1rem;
-            line-height: 1.6;
+            font-size: 0.95rem;
+            line-height: 1.5;
             position: relative;
-            box-shadow: 0 10px 40px rgba(255, 107, 157, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
-            animation: bubbleGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes bubbleGlow {
-            0%, 100% { 
-                box-shadow: 0 10px 40px rgba(255, 107, 157, 0.3);
-            }
-            50% { 
-                box-shadow: 0 15px 50px rgba(255, 107, 157, 0.5);
-            }
         }
 
         .message.user .message-bubble {
@@ -228,50 +122,22 @@
             border-bottom-right-radius: 8px;
         }
 
-        .message.user .message-bubble::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
-            border-radius: inherit;
-        }
-
         .message.ai .message-bubble {
             background: var(--ai-bubble);
             border-bottom-left-radius: 8px;
-            color: white;
-        }
-
-        .message.ai .message-bubble::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
-            border-radius: inherit;
+            color: #333;
         }
 
         .message-avatar {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 1rem;
-            font-size: 1.3rem;
-            box-shadow: 0 8px 25px rgba(255, 107, 157, 0.4);
-            animation: avatarBounce 2s ease-in-out infinite;
-        }
-
-        @keyframes avatarBounce {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-3px) scale(1.05); }
+            margin: 0 0.8rem;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
         .message.user .message-avatar {
@@ -282,31 +148,13 @@
 
         .message.ai .message-avatar {
             background: var(--ai-bubble);
-            color: white;
+            color: #333;
         }
 
         .chat-input-area {
-            padding: 2rem;
+            padding: 1.5rem;
             background: white;
-            border-top: 3px solid var(--light-pink);
-            position: relative;
-        }
-
-        .chat-input-area::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--primary-gradient);
-            background-size: 200% 100%;
-            animation: borderFlow 3s linear infinite;
-        }
-
-        @keyframes borderFlow {
-            0% { background-position: 0% 0; }
-            100% { background-position: 200% 0; }
+            border-top: 1px solid #e9ecef;
         }
 
         .input-group {
@@ -314,269 +162,147 @@
         }
 
         .form-control {
-            border: 3px solid var(--light-pink);
-            border-radius: 30px;
-            padding: 1.2rem 2rem;
-            font-size: 1.1rem;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            background: var(--ultra-light-pink);
-            box-shadow: inset 0 2px 10px rgba(255, 107, 157, 0.1);
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
         }
 
         .form-control:focus {
-            border-color: var(--accent-pink);
-            box-shadow: 0 0 30px rgba(255, 107, 157, 0.3);
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
             background: white;
-            transform: translateY(-2px);
         }
 
         .btn-send {
             background: var(--primary-gradient);
             border: none;
             border-radius: 50%;
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-left: 0.8rem;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 30px rgba(255, 107, 157, 0.4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-send::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.6s;
+            margin-left: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
 
         .btn-send:hover {
-            transform: translateY(-4px) scale(1.1);
-            box-shadow: 0 15px 40px rgba(255, 107, 157, 0.6);
-            animation: buttonPulse 0.8s infinite;
-        }
-
-        .btn-send:hover::before {
-            left: 100%;
-        }
-
-        @keyframes buttonPulse {
-            0%, 100% { transform: translateY(-4px) scale(1.1); }
-            50% { transform: translateY(-6px) scale(1.15); }
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
 
         .btn-send:disabled {
             opacity: 0.6;
             transform: none;
-            animation: none;
         }
 
         .typing-indicator {
             display: flex;
             align-items: center;
-            padding: 1.2rem 2rem;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 25px;
-            margin-bottom: 1.5rem;
-            backdrop-filter: blur(15px);
-            box-shadow: 0 8px 30px rgba(255, 107, 157, 0.2);
-            animation: typingFloat 2s ease-in-out infinite;
-            border: 2px solid var(--light-pink);
-        }
-
-        @keyframes typingFloat {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-3px) scale(1.02); }
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
         }
 
         .typing-dots {
             display: flex;
-            gap: 6px;
-            margin-left: 0.8rem;
+            gap: 4px;
+            margin-left: 0.5rem;
         }
 
         .typing-dot {
-            width: 10px;
-            height: 10px;
-            background: var(--primary-gradient);
+            width: 8px;
+            height: 8px;
+            background: #667eea;
             border-radius: 50%;
-            animation: typingAnimation 1.4s infinite ease-in-out;
-            box-shadow: 0 2px 10px rgba(255, 107, 157, 0.3);
+            animation: typing 1.4s infinite ease-in-out;
         }
 
         .typing-dot:nth-child(1) { animation-delay: -0.32s; }
         .typing-dot:nth-child(2) { animation-delay: -0.16s; }
 
-        @keyframes typingAnimation {
+        @keyframes typing {
             0%, 80%, 100% {
                 transform: scale(0.8);
                 opacity: 0.5;
             }
             40% {
-                transform: scale(1.2);
+                transform: scale(1);
                 opacity: 1;
             }
         }
 
         .welcome-message {
             text-align: center;
-            color: var(--deep-pink);
-            padding: 3rem;
+            color: #6c757d;
+            padding: 2rem;
             font-style: italic;
-            animation: welcomePulse 4s ease-in-out infinite;
-        }
-
-        @keyframes welcomePulse {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
         }
 
         .welcome-message i {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: iconSpin 8s linear infinite;
-        }
-
-        @keyframes iconSpin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #667eea;
         }
 
         .error-message {
             background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
             color: white;
-            padding: 1.5rem;
-            border-radius: 15px;
-            margin: 1.5rem 0;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
             text-align: center;
-            animation: errorShake 0.6s ease-in-out, errorFade 3s ease-in-out;
-            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
-        }
-
-        @keyframes errorShake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            75% { transform: translateX(8px); }
-        }
-
-        @keyframes errorFade {
-            0%, 80% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-
-        .connection-status {
-            position: absolute;
-            top: 15px;
-            right: 25px;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            font-size: 0.9rem;
-            z-index: 10;
-        }
-
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4ecdc4;
-            animation: statusPulse 2s infinite;
-            box-shadow: 0 0 20px rgba(78, 205, 196, 0.6);
-        }
-
-        .status-indicator.disconnected {
-            background: #ff6b6b;
-            animation: statusBlink 1s infinite;
-            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
-        }
-
-        @keyframes statusPulse {
-            0%, 100% { 
-                opacity: 1; 
-                transform: scale(1);
-            }
-            50% { 
-                opacity: 0.5; 
-                transform: scale(1.2);
-            }
-        }
-
-        @keyframes statusBlink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.3; }
-        }
-
-        /* Enhanced scrollbar */
-        .chat-messages::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .chat-messages::-webkit-scrollbar-track {
-            background: var(--light-pink);
-            border-radius: 10px;
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: var(--primary-gradient);
-            border-radius: 10px;
-            transition: all 0.3s;
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary-gradient);
-            transform: scale(1.1);
         }
 
         @media (max-width: 768px) {
             .chat-container {
                 margin: 1rem;
-                border-radius: 20px;
+                border-radius: 15px;
                 min-height: calc(100vh - 2rem);
             }
             
             .message-bubble {
                 max-width: 85%;
-                padding: 1rem 1.5rem;
             }
             
             .chat-messages {
-                padding: 1.5rem;
-            }
-
-            .chat-header h1 {
-                font-size: 1.6rem;
-            }
-
-            .btn-send {
-                width: 50px;
-                height: 50px;
+                padding: 1rem;
             }
         }
 
-        /* Additional sparkle animations */
-        .chat-header .fas.fa-sparkles {
-            animation: sparkle 2s ease-in-out infinite;
+        .connection-status {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
         }
 
-        @keyframes sparkle {
-            0%, 100% { 
-                transform: scale(1) rotate(0deg);
-                color: rgba(255,255,255,0.8);
-            }
-            50% { 
-                transform: scale(1.2) rotate(180deg);
-                color: rgba(255,255,255,1);
-            }
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.disconnected {
+            background: #ff6b6b;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
@@ -586,21 +312,21 @@
             <div class="chat-header">
                 <div class="connection-status">
                     <div class="status-indicator" id="statusIndicator"></div>
-                    <span id="statusText">Connected</span>
+                    <span id="statusText">已連接</span>
                 </div>
-                <h1><i class="fas fa-robot me-2"></i>AI Smart Assistant</h1>
+                <h1><i class="fas fa-robot me-2"></i>AI 智能助理</h1>
                 <div class="chat-status">
                     <i class="fas fa-sparkles me-1"></i>
-                    N8N + Gemini + Memory + SerpAPI Intelligent Conversation System
+                    N8N+Gemini+memory+serpAPI 智能對話系統
                 </div>
             </div>
 
             <div class="chat-messages" id="chatMessages">
                 <div class="welcome-message">
                     <i class="fas fa-comments"></i>
-                    <h4>Welcome to AI Assistant!</h4>
-                    <p>I'm your intelligent assistant, ready to help you answer questions, search for information, or engage in natural conversation.</p>
-                    <p>Please enter your questions or thoughts, let's start chatting!</p>
+                    <h4>歡迎使用 AI 助理！</h4>
+                    <p>我是您的智能助手，可以幫您回答問題、搜尋資訊，或者進行自然對話。</p>
+                    <p>請輸入您的問題或想法，讓我們開始聊天吧！</p>
                 </div>
             </div>
 
@@ -609,7 +335,7 @@
                     <input type="text" 
                            class="form-control" 
                            id="messageInput" 
-                           placeholder="Type your message..."
+                           placeholder="輸入您的訊息..."
                            autocomplete="off">
                     <button class="btn btn-send" 
                             id="sendButton" 
@@ -619,7 +345,7 @@
                 </div>
                 <div class="mt-2 text-muted small text-center">
                     <i class="fas fa-info-circle me-1"></i>
-                    Press Enter to send message quickly
+                    按 Enter 鍵快速發送訊息
                 </div>
             </div>
         </div>
@@ -631,7 +357,7 @@
             constructor() {
                 this.sessionId = this.generateSessionId();
                 this.isTyping = false;
-                this.webhookUrl = ''; // Please set your N8N webhook URL here
+                this.webhookUrl = ''; // 請在這裡設置您的 N8N webhook URL
                 
                 this.initializeElements();
                 this.bindEvents();
@@ -659,7 +385,7 @@
                     }
                 });
 
-                // Auto-adjust input field height
+                // 自動調整輸入框高度
                 this.messageInput.addEventListener('input', () => {
                     this.messageInput.style.height = 'auto';
                     this.messageInput.style.height = this.messageInput.scrollHeight + 'px';
@@ -669,11 +395,11 @@
             updateConnectionStatus() {
                 if (!this.webhookUrl) {
                     this.statusIndicator.classList.add('disconnected');
-                    this.statusText.textContent = 'Setup Webhook URL...';
-                    this.showError('Setting up N8N webhook URL in program...');
+                    this.statusText.textContent = '設置 Webhook URL ...';
+                    this.showError('正在程式中設置 N8N webhook URL...');
                 } else {
                     this.statusIndicator.classList.remove('disconnected');
-                    this.statusText.textContent = 'Connected';
+                    this.statusText.textContent = '已連接';
                 }
             }
 
@@ -682,22 +408,22 @@
                 if (!message || this.isTyping) return;
 
                 if (!this.webhookUrl) {
-                    this.showError('Please set up N8N webhook URL first');
+                    this.showError('請先設置 N8N webhook URL');
                     return;
                 }
 
-                // Clear welcome message
+                // 清除歡迎訊息
                 const welcomeMessage = this.chatMessages.querySelector('.welcome-message');
                 if (welcomeMessage) {
                     welcomeMessage.remove();
                 }
 
-                // Add user message
+                // 添加用戶訊息
                 this.addMessage(message, 'user');
                 this.messageInput.value = '';
                 this.messageInput.style.height = 'auto';
 
-                // Show typing indicator
+                // 顯示正在輸入指示器
                 this.showTypingIndicator();
 
                 try {
@@ -707,13 +433,13 @@
                     if (response.success && response.message) {
                         this.addMessage(response.message, 'ai');
                     } else {
-                        throw new Error('Invalid response format');
+                        throw new Error('無效的回應格式');
                     }
                 } catch (error) {
                     this.hideTypingIndicator();
-                    console.error('Message sending error:', error);
-                    this.addMessage('Sorry, an error occurred. Please try again later.', 'ai');
-                    this.showError('Connection failed, please check network connection or webhook settings');
+                    console.error('發送訊息錯誤:', error);
+                    this.addMessage('抱歉，發生了錯誤。請稍後再試。', 'ai');
+                    this.showError('連接失敗，請檢查網路連接或 webhook 設定');
                 }
             }
 
@@ -767,7 +493,7 @@
                 typingDiv.id = 'typingIndicator';
                 typingDiv.innerHTML = `
                     <i class="fas fa-robot"></i>
-                    <span>AI is thinking</span>
+                    <span>AI 正在思考</span>
                     <div class="typing-dots">
                         <div class="typing-dot"></div>
                         <div class="typing-dot"></div>
@@ -797,7 +523,7 @@
                 this.chatMessages.appendChild(errorDiv);
                 this.scrollToBottom();
 
-                // Auto remove error message after 3 seconds
+                // 3秒後自動移除錯誤訊息
                 setTimeout(() => {
                     if (errorDiv.parentNode) {
                         errorDiv.remove();
@@ -809,26 +535,26 @@
                 this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
             }
 
-            // Public method for users to set webhook URL
+            // 公開方法供用戶設置 webhook URL
             setWebhookUrl(url) {
                 this.webhookUrl = url;
                 this.updateConnectionStatus();
-                console.log('Webhook URL set:', url);
+                console.log('Webhook URL 已設置:', url);
             }
         }
 
-        // Initialize chat interface
+        // 初始化聊天介面
         const chat = new ChatInterface();
 
-        // Usage:
-        // Replace the URL below with your actual N8N webhook URL
+        // 使用方法：
+        // 請將下面的 URL 替換為您的實際 N8N webhook URL
         chat.setWebhookUrl('https://a3g.app.n8n.cloud/webhook/chat');
 
-        // Example: If your N8N runs locally
+        // 範例：如果您的 N8N 運行在本地
         // chat.setWebhookUrl('http://localhost:5678/webhook/chat');
 
-        console.log('Chat interface initialized!');
-        console.log('Please use chat.setWebhookUrl("your-webhook-url") to setup connection');
+        console.log('聊天介面已初始化！');
+        console.log('請使用 chat.setWebhookUrl("您的webhook網址") 來設置連接');
     </script>
 </body>
 </html>
