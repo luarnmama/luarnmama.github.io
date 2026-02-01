@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sci-Fi Hand Tracking Holographic Dial</title>
+    <title>Fancy Hand Art - Sci-Fi Hologram</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/addons/p5.sound.min.js"></script>
@@ -13,198 +13,180 @@
       html, body {
         margin: 0;
         padding: 0;
-        background-color: #0a0f19; /* 配合 sketch.js 的背景色，避免載入時閃爍 */
-        overflow: hidden; /* 防止出現卷軸 */
+        background-color: #0a0f19;
+        overflow: hidden;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
+
+      /* 相機引導介面 */
+      #overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, #1a1f35 0%, #0a0f19 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        color: white;
+        text-align: center;
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        padding: 15px 30px;
+        font-size: 1.1em;
+        border-radius: 30px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 20px;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      /* 回上頁按鈕 */
+      #back-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 2000;
+        padding: 10px 20px;
+        font-size: 0.9em;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        color: white;
+        text-decoration: none;
+        transition: all 0.3s;
+      }
+
+      #back-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateX(-5px);
+      }
+
       canvas {
         display: block;
-        margin: 0 auto; /* 讓 Canvas 居中 */
+      }
+
+      #status {
+        position: fixed;
+        bottom: 20px;
+        width: 100%;
+        text-align: center;
+        color: rgba(255,255,255,0.5);
+        font-size: 0.8em;
+        letter-spacing: 2px;
       }
     </style>
   </head>
   <body>
-    <main>
-    </main>
+    <a href="../perception_demo.html" id="back-btn">← Back to Hub</a>
+
+    <div id="overlay">
+      <div style="font-size: 50px; margin-bottom: 10px;">✨</div>
+      <h2 style="margin-bottom: 10px; font-weight: 300;">Fancy Hand Art</h2>
+      <p style="color: rgba(255,255,255,0.6); max-width: 300px;">準備進入數位藝術空間。請允許存取相機以開始體驗。</p>
+      <button class="btn" onclick="startExperience()">啟動相機 (Start Camera)</button>
+    </div>
+
+    <div id="status">INITIALIZING SYSTEM...</div>
 
     <script>
-      /*
-        Sci-Fi Hand Tracking V2 - Holographic Dial
-        p5.js + ml5.js
-      */
-
       let video;
       let handPose;
       let hands = [];
-
-      // 用來做動畫平滑過渡的變數
-      let smoothedAngle = 0; 
-      let smoothedX = 0;
-      let smoothedY = 0;
-
-      function preload() {
-        handPose = ml5.handPose();
-      }
+      let isVideoReady = false;
 
       function setup() {
-        createCanvas(640, 480);
-        video = createCapture(VIDEO);
+        createCanvas(windowWidth, windowHeight);
+        
+        // 初始化 ml5 handPose
+        handPose = ml5.handPose({ flipped: true }, () => {
+          document.getElementById('status').innerText = 'AI MODEL LOADED';
+        });
+      }
+
+      // 點擊按鈕後才啟動相機
+      function startExperience() {
+        video = createCapture(VIDEO, () => {
+          isVideoReady = true;
+          document.getElementById('overlay').style.display = 'none';
+          document.getElementById('status').innerText = 'SYSTEM ACTIVE';
+          handPose.detectStart(video, results => {
+            hands = results;
+          });
+        });
         video.size(640, 480);
         video.hide();
-        handPose.detectStart(video, gotHands);
-        
-        // 設定字體與繪圖模式
-        textFont('Courier New');
-        angleMode(DEGREES); // 改用角度模式 (0-360)，比較好計算旋轉
       }
 
       function draw() {
-        background(10, 15, 25); // 深藍背景
-        
-        // 鏡像翻轉與顯示底圖
+        background(10, 15, 25); // 深藍黑色背景
+
+        if (!isVideoReady) return;
+
+        // 繪製半透明的攝影機畫面 (增加科幻感)
         push();
         translate(width, 0);
         scale(-1, 1);
-        tint(255, 30); // 很淡的原始影像
-        image(video, 0, 0, width, height);
+        tint(100, 150, 255, 30); 
+        image(video, 0, 0, width, height, 0, 0, video.width, video.height, COVER);
         pop();
 
-        if (hands.length > 0) {
-          let hand = hands[0];
-          
-          // 1. 畫骨架
-          drawSciFiSkeleton(hand);
-          
-          // 2. 畫指尖特效
-          drawFingertips(hand);
-          
-          // 3. 畫重頭戲：手腕上的動態儀表板
-          drawHoloDial(hand);
-        } else {
-          drawScanningUI(); // 沒手的時候顯示掃描動畫
+        // 繪製手部藝術效果
+        for (let i = 0; i < hands.length; i++) {
+          let hand = hands[i];
+          drawHandArt(hand);
         }
       }
 
-      function gotHands(results) {
-        hands = results;
-      }
-
-      // === 核心特效區 ===
-
-      function drawHoloDial(hand) {
-        let wrist = hand.keypoints[0];
-        let middle = hand.keypoints[9];
-        
-        // 計算鏡像後的座標
-        let targetX = width - wrist.x;
-        let targetY = wrist.y;
-        
-        // 計算目標角度 (手腕到中指)
-        // 注意：這裡我們要把鏡像翻轉校正回來計算角度
-        let angle = atan2(middle.y - wrist.y, (width - middle.x) - (width - wrist.x));
-        
-        // *** 關鍵技術：Lerp (線性插值) ***
-        // 讓數值慢慢追上目標，創造「機械延遲感」
-        smoothedAngle = lerp(smoothedAngle, angle, 0.1); 
-        smoothedX = lerp(smoothedX, targetX, 0.2);
-        smoothedY = lerp(smoothedY, targetY, 0.2);
-        
-        push();
-        translate(smoothedX, smoothedY); // 將畫布原點移動到手腕位置
-        
-        // A. 畫外部靜態裝飾環 (虛線)
-        noFill();
-        stroke(0, 255, 255, 100);
-        strokeWeight(1);
-        drawingContext.setLineDash([5, 5]); // 虛線樣式
-        circle(0, 0, 140);
-        drawingContext.setLineDash([]); // 還原實線
-        
-        // B. 畫旋轉的刻度盤 (會跟著手轉)
-        push();
-        rotate(smoothedAngle); // 旋轉畫布！
-        
-        // 內圈實線環
-        stroke(0, 255, 255);
+      function drawHandArt(hand) {
+        // 繪製骨架線條
+        stroke(102, 126, 234, 150);
         strokeWeight(2);
-        arc(0, 0, 100, 100, -45, 225); // 開口的圓環
-        
-        // 畫刻度線
-        for(let i = 0; i < 12; i++) {
-          rotate(30);
-          line(40, 0, 45, 0);
-        }
-        
-        // 畫指針三角形
-        fill(255, 50, 100); // 顯眼的紅色指針
-        noStroke();
-        triangle(55, 0, 45, -5, 45, 5);
-        pop(); // 結束旋轉層
-        
-        // C. 顯示數據文字 (不跟著旋轉，永遠水平)
-        fill(255);
-        textSize(14);
-        textAlign(CENTER);
-        text("ROTATION", 0, -80);
-        
-        textSize(24);
-        fill(0, 255, 255);
-        // 加上 int() 去掉小數點，並加上 90 度修正讓數值比較直觀
-        let displayAngle = int(smoothedAngle); 
-        text(displayAngle + "°", 0, 5);
-        
-        pop(); // 結束手腕位置層
-      }
-
-      function drawSciFiSkeleton(hand) {
-        stroke(100, 200, 255, 100);
-        strokeWeight(1);
         let connections = handPose.getConnections();
         for (let i = 0; i < connections.length; i++) {
           let a = connections[i][0];
           let b = connections[i][1];
-          let x1 = width - hand.keypoints[a].x;
-          let y1 = hand.keypoints[a].y;
-          let x2 = width - hand.keypoints[b].x;
-          let y2 = hand.keypoints[b].y;
-          line(x1, y1, x2, y2);
+          let kp1 = hand.keypoints[a];
+          let kp2 = hand.keypoints[b];
+          line(kp1.x * (width/video.width), kp1.y * (height/video.height), 
+               kp2.x * (width/video.width), kp2.y * (height/video.height));
         }
-      }
 
-      function drawFingertips(hand) {
+        // 繪製指尖流光效果
         let tips = [4, 8, 12, 16, 20];
-        for (let i of tips) {
-          let k = hand.keypoints[i];
-          let x = width - k.x;
-          let y = k.y;
+        tips.forEach((index, i) => {
+          let kp = hand.keypoints[index];
+          let x = kp.x * (width/video.width);
+          let y = kp.y * (height/video.height);
           
-          // 讓指尖圓圈有呼吸感 (根據 frameCount 縮放)
-          let pulse = map(sin(frameCount * 5), -1, 1, 0.8, 1.2);
-          
+          let pulse = map(sin(frameCount * 0.1 + i), -1, 1, 10, 25);
           noFill();
-          stroke(255, 200);
-          circle(x, y, 15 * pulse); // 呼吸縮放
-          point(x, y);
+          stroke(118, 75, 162, 200);
+          ellipse(x, y, pulse, pulse);
           
-          // 連接線到文字
-          stroke(255, 50);
-          line(x, y, x + 20, y - 20);
+          fill(255);
           noStroke();
-          fill(255, 150);
-          textSize(10);
-          text(`ID:${i}`, x + 25, y - 20);
-        }
+          circle(x, y, 5);
+        });
       }
 
-      function drawScanningUI() {
-        // 沒偵測到手時的掃描線特效
-        stroke(0, 255, 0, 150);
-        let scanY = (frameCount * 2) % height;
-        line(0, scanY, width, scanY);
-        
-        fill(0, 255, 0);
-        noStroke();
-        textAlign(CENTER);
-        text("SEARCHING TARGET...", width/2, height/2);
+      function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
       }
     </script>
   </body>
