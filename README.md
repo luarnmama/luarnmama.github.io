@@ -46,7 +46,8 @@
 ### perception_demo.html：整合多種 MediaPipe 偵測功能（如人臉、姿勢等）的示範頁面。
 ### unit.html：作業展示專用網頁，具備左右巡航按鈕可切換不同單元。
 ### word_vector_3d_plotly_with_word2vec.html：展示詞向量化 (Word2Vec) 的 3D 視覺化模型。
-## 樣式表 (CSS)：
+
+## 💖 樣式表 (CSS)：
 ### style.css：定義 unit.html 的版面風格。
 ### style2.css：定義 index.html 的版面風格。
 
